@@ -7,8 +7,11 @@ const OPENROUTER_API_KEY = process.env.EXPO_PUBLIC_OPENROUTER_API_KEY;
  * Tries the Gemini API directly, then falls back to OpenRouter.
  */
 export const getBestMove = async (fen) => {
+  console.log('[AI] Requesting best move for FEN:', fen);
+
   // First attempt: Gemini API
   if (GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key_here') {
+    console.log('[AI] Attempting direct Gemini API call...');
     try {
       const geminiResponse = await axios.post(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`,
@@ -27,14 +30,18 @@ export const getBestMove = async (fen) => {
       );
       
       const move = geminiResponse.data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      if (move) return move;
+      if (move) {
+        console.log('[AI] Gemini success! Move:', move);
+        return move;
+      }
     } catch (error) {
-      console.warn('Gemini API directly failed, trying OpenRouter fallback...', error.message);
+      console.warn('[AI] Gemini API failed:', error.response?.data || error.message);
     }
   }
 
   // Second attempt: OpenRouter
   if (OPENROUTER_API_KEY && OPENROUTER_API_KEY !== 'your_openrouter_api_key_here') {
+    console.log('[AI] Attempting OpenRouter fallback...');
     try {
       const openRouterResponse = await axios.post(
         'https://openrouter.ai/api/v1/chat/completions',
@@ -58,11 +65,14 @@ export const getBestMove = async (fen) => {
           },
         }
       );
-      return openRouterResponse.data.choices[0].message.content.trim();
+      const move = openRouterResponse.data.choices[0].message.content.trim();
+      console.log('[AI] OpenRouter success! Move:', move);
+      return move;
     } catch (error) {
-      console.error('OpenRouter fallback failed:', error.message);
+      console.error('[AI] OpenRouter failed:', error.response?.data || error.message);
     }
   }
 
+  console.error('[AI] All AI attempts failed. Check your API keys.');
   return null;
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Chess } from 'chess.js';
 import Svg, { Line, Circle, Rect } from 'react-native-svg';
@@ -16,25 +16,34 @@ export default function App() {
   const [game, setGame] = useState(new Chess());
   const [aiMove, setAiMove] = useState(null);
   const [isLive, setIsLive] = useState(false);
+  const [logs, setLogs] = useState([]);
   const cameraRef = useRef(null);
   const analysisInterval = useRef(null);
 
+  const addLog = (msg) => {
+    console.log(`[APP] ${msg}`);
+    setLogs((prev) => [`${new Date().toLocaleTimeString()}: ${msg}`, ...prev].slice(0, 10));
+  };
+
   useEffect(() => {
     (async () => {
+      addLog('Initializing TFJS...');
       await tf.ready();
-      console.log('TensorFlow ready');
+      addLog('TensorFlow ready');
     })();
   }, []);
 
   useEffect(() => {
     if (isLive) {
+      addLog('Live mode activated');
       analysisInterval.current = setInterval(async () => {
         if (!isAnalyzing && cameraRef.current) {
-          console.log('Periodic scan (simulated)');
-          // handleScanBoard(); // Would be here
+          addLog('Performing periodic scan...');
+          // handleScanBoard();
         }
       }, 5000);
     } else {
+      addLog('Live mode deactivated');
       clearInterval(analysisInterval.current);
     }
     return () => clearInterval(analysisInterval.current);
@@ -42,6 +51,7 @@ export default function App() {
 
   if (!permission) return <View style={styles.container}><ActivityIndicator size="large" /></View>;
   if (!permission.granted) {
+    addLog('Camera permission not granted');
     return (
       <View style={styles.container}>
         <Text style={styles.message}>We need your permission to show the camera</Text>
@@ -54,18 +64,22 @@ export default function App() {
 
   const handleScanBoard = async () => {
     if (cameraRef.current && !isAnalyzing) {
+      addLog('Taking picture...');
       setIsAnalyzing(true);
       try {
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.5 });
+        addLog(`Photo captured: ${photo.width}x${photo.height}`);
+        
         const detectedFen = await analyzeBoard(photo);
         if (detectedFen) {
+          addLog(`Board state detected: ${detectedFen}`);
           const newGame = new Chess(detectedFen);
           setGame(newGame);
           setAiMove(null);
           Alert.alert('Board Scanned', 'Game state updated from camera.');
         }
       } catch (error) {
-        console.error('Scan error:', error);
+        addLog(`Scan error: ${error.message}`);
       } finally {
         setIsAnalyzing(false);
       }
@@ -73,21 +87,26 @@ export default function App() {
   };
 
   const handleGetAiMove = async () => {
+    addLog('Fetching AI move...');
     setIsAnalyzing(true);
     try {
       const bestMove = await getBestMove(game.fen());
       if (bestMove) {
+        addLog(`AI Move suggested: ${bestMove}`);
         setAiMove(bestMove);
         Alert.alert('AI Suggestion', `Best move: ${bestMove}`);
+      } else {
+        addLog('No move returned from AI.');
       }
     } catch (error) {
-      console.error('AI Move error:', error);
+      addLog(`AI error: ${error.message}`);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
   const handleReset = () => {
+    addLog('Resetting game...');
     setGame(new Chess());
     setAiMove(null);
   };
@@ -97,14 +116,8 @@ export default function App() {
       <Svg height="100%" width="100%" viewBox="0 0 100 100">
         {[...Array(9)].map((_, i) => (
           <React.Fragment key={i}>
-            <Line
-              x1={0} y1={i * 12.5} x2={100} y2={i * 12.5}
-              stroke="rgba(255,255,255,0.3)" strokeWidth="0.5"
-            />
-            <Line
-              x1={i * 12.5} y1={0} x2={i * 12.5} y2={100}
-              stroke="rgba(255,255,255,0.3)" strokeWidth="0.5"
-            />
+            <Line x1={0} y1={i * 12.5} x2={100} y2={i * 12.5} stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+            <Line x1={i * 12.5} y1={0} x2={i * 12.5} y2={100} stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
           </React.Fragment>
         ))}
       </Svg>
@@ -120,6 +133,14 @@ export default function App() {
           
           <View style={styles.header}>
             <Text style={styles.fenText}>{game.fen()}</Text>
+          </View>
+
+          <View style={styles.logPanel}>
+            <ScrollView style={styles.logScroll}>
+              {logs.map((log, i) => (
+                <Text key={i} style={styles.logText}>{log}</Text>
+              ))}
+            </ScrollView>
           </View>
 
           {aiMove && (
@@ -167,115 +188,26 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  camera: {
-    flex: 1,
-  },
-  header: {
-    position: 'absolute',
-    top: 50,
-    width: '100%',
-    padding: 10,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  fenText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 10,
-    textAlign: 'center',
-  },
-  gridContainer: {
-    position: 'absolute',
-    top: '20%',
-    left: '5%',
-    width: '90%',
-    aspectRatio: 1,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.5)',
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    justifyContent: 'flex-end',
-    padding: 20,
-  },
-  controls: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    marginBottom: 40,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 30,
-    padding: 15,
-  },
-  iconButton: {
-    alignItems: 'center',
-  },
-  aiButton: {
-    transform: [{ scale: 1.2 }],
-    marginHorizontal: 10,
-  },
-  activeButton: {
-    borderColor: '#4cd137',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 5,
-  },
-  iconText: {
-    color: 'white',
-    fontSize: 10,
-    marginTop: 5,
-    fontWeight: 'bold',
-  },
-  aiOverlay: {
-    position: 'absolute',
-    top: 100,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0,122,255,0.9)',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
-  },
-  aiMoveLabel: {
-    color: 'white',
-    fontSize: 10,
-    textTransform: 'uppercase',
-    opacity: 0.8,
-  },
-  aiMoveText: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: '900',
-  },
-  message: {
-    textAlign: 'center',
-    paddingBottom: 10,
-    color: 'white',
-  },
-  button: {
-    backgroundColor: '#2196F3',
-    padding: 10,
-    borderRadius: 5,
-  },
-  text: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  loader: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  loaderText: {
-    color: 'white',
-    marginTop: 10,
-    fontSize: 16,
-  },
+  container: { flex: 1, backgroundColor: '#000' },
+  camera: { flex: 1 },
+  header: { position: 'absolute', top: 50, width: '100%', padding: 10, backgroundColor: 'rgba(0,0,0,0.4)' },
+  fenText: { color: 'rgba(255,255,255,0.6)', fontSize: 8, textAlign: 'center' },
+  gridContainer: { position: 'absolute', top: '20%', left: '5%', width: '90%', aspectRatio: 1, borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)' },
+  overlay: { flex: 1, backgroundColor: 'transparent', justifyContent: 'flex-end', padding: 20 },
+  logPanel: { position: 'absolute', top: 120, left: 10, right: 10, height: 80, backgroundColor: 'rgba(0,0,0,0.5)', padding: 5, borderRadius: 5 },
+  logScroll: { flex: 1 },
+  logText: { color: '#00ff00', fontSize: 9, fontFamily: 'monospace' },
+  controls: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', marginBottom: 40, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 30, padding: 15 },
+  iconButton: { alignItems: 'center' },
+  aiButton: { transform: [{ scale: 1.2 }], marginHorizontal: 10 },
+  activeButton: { borderColor: '#4cd137', borderWidth: 1, borderRadius: 10, padding: 5 },
+  iconText: { color: 'white', fontSize: 10, marginTop: 5, fontWeight: 'bold' },
+  aiOverlay: { position: 'absolute', top: 220, alignSelf: 'center', backgroundColor: 'rgba(0,122,255,0.9)', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20, alignItems: 'center', borderWidth: 2, borderColor: 'white' },
+  aiMoveLabel: { color: 'white', fontSize: 10, textTransform: 'uppercase', opacity: 0.8 },
+  aiMoveText: { color: 'white', fontSize: 24, fontWeight: '900' },
+  message: { textAlign: 'center', paddingBottom: 10, color: 'white' },
+  button: { backgroundColor: '#2196F3', padding: 10, borderRadius: 5 },
+  text: { color: 'white', fontWeight: 'bold' },
+  loader: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
+  loaderText: { color: 'white', marginTop: 10, fontSize: 16 },
 });
