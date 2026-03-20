@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@tensorflow/tfjs": "^4.17.0",
     "@tensorflow/tfjs-react-native": "^1.0.0",
     "axios": "^1.6.0",
