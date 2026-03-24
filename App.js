@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+} from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Chess } from 'chess.js';
 import Svg, { Line, Circle, Rect } from 'react-native-svg';
@@ -49,7 +57,12 @@ export default function App() {
     return () => clearInterval(analysisInterval.current);
   }, [isLive, isAnalyzing]);
 
-  if (!permission) return <View style={styles.container}><ActivityIndicator size="large" /></View>;
+  if (!permission)
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   if (!permission.granted) {
     addLog('Camera permission not granted');
     return (
@@ -69,7 +82,7 @@ export default function App() {
       try {
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.5 });
         addLog(`Photo captured: ${photo.width}x${photo.height}`);
-        
+
         const detectedFen = await analyzeBoard(photo);
         if (detectedFen) {
           addLog(`Board state detected: ${detectedFen}`);
@@ -116,8 +129,22 @@ export default function App() {
       <Svg height="100%" width="100%" viewBox="0 0 100 100">
         {[...Array(9)].map((_, i) => (
           <React.Fragment key={i}>
-            <Line x1={0} y1={i * 12.5} x2={100} y2={i * 12.5} stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
-            <Line x1={i * 12.5} y1={0} x2={i * 12.5} y2={100} stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+            <Line
+              x1={0}
+              y1={i * 12.5}
+              x2={100}
+              y2={i * 12.5}
+              stroke="rgba(255,255,255,0.3)"
+              strokeWidth="0.5"
+            />
+            <Line
+              x1={i * 12.5}
+              y1={0}
+              x2={i * 12.5}
+              y2={100}
+              stroke="rgba(255,255,255,0.3)"
+              strokeWidth="0.5"
+            />
           </React.Fragment>
         ))}
       </Svg>
@@ -130,7 +157,7 @@ export default function App() {
       <CameraView style={styles.camera} ref={cameraRef}>
         <View style={styles.overlay}>
           {renderBoardGrid()}
-          
+
           <View style={styles.header}>
             <Text style={styles.fenText}>{game.fen()}</Text>
           </View>
@@ -138,7 +165,9 @@ export default function App() {
           <View style={styles.logPanel}>
             <ScrollView style={styles.logScroll}>
               {logs.map((log, i) => (
-                <Text key={i} style={styles.logText}>{log}</Text>
+                <Text key={i} style={styles.logText}>
+                  {log}
+                </Text>
               ))}
             </ScrollView>
           </View>
@@ -149,22 +178,30 @@ export default function App() {
               <Text style={styles.aiMoveText}>{aiMove}</Text>
             </View>
           )}
-          
+
           <View style={styles.controls}>
-            <TouchableOpacity style={styles.iconButton} onPress={handleScanBoard} disabled={isAnalyzing}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={handleScanBoard}
+              disabled={isAnalyzing}
+            >
               <Scan color="white" size={28} />
               <Text style={styles.iconText}>Scan</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.iconButton, isLive ? styles.activeButton : {}]} 
+            <TouchableOpacity
+              style={[styles.iconButton, isLive ? styles.activeButton : {}]}
               onPress={() => setIsLive(!isLive)}
             >
               {isLive ? <Video color="#4cd137" size={28} /> : <VideoOff color="white" size={28} />}
-              <Text style={[styles.iconText, isLive ? {color: '#4cd137'} : {}]}>Live</Text>
+              <Text style={[styles.iconText, isLive ? { color: '#4cd137' } : {}]}>Live</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.iconButton, styles.aiButton]} onPress={handleGetAiMove} disabled={isAnalyzing}>
+            <TouchableOpacity
+              style={[styles.iconButton, styles.aiButton]}
+              onPress={handleGetAiMove}
+              disabled={isAnalyzing}
+            >
               <Cpu color="white" size={40} />
               <Text style={styles.iconText}>AI Move</Text>
             </TouchableOpacity>
@@ -190,24 +227,72 @@ export default function App() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   camera: { flex: 1 },
-  header: { position: 'absolute', top: 50, width: '100%', padding: 10, backgroundColor: 'rgba(0,0,0,0.4)' },
+  header: {
+    position: 'absolute',
+    top: 50,
+    width: '100%',
+    padding: 10,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
   fenText: { color: 'rgba(255,255,255,0.6)', fontSize: 8, textAlign: 'center' },
-  gridContainer: { position: 'absolute', top: '20%', left: '5%', width: '90%', aspectRatio: 1, borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)' },
+  gridContainer: {
+    position: 'absolute',
+    top: '20%',
+    left: '5%',
+    width: '90%',
+    aspectRatio: 1,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
   overlay: { flex: 1, backgroundColor: 'transparent', justifyContent: 'flex-end', padding: 20 },
-  logPanel: { position: 'absolute', top: 120, left: 10, right: 10, height: 80, backgroundColor: 'rgba(0,0,0,0.5)', padding: 5, borderRadius: 5 },
+  logPanel: {
+    position: 'absolute',
+    top: 120,
+    left: 10,
+    right: 10,
+    height: 80,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: 5,
+    borderRadius: 5,
+  },
   logScroll: { flex: 1 },
   logText: { color: '#00ff00', fontSize: 9, fontFamily: 'monospace' },
-  controls: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', marginBottom: 40, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 30, padding: 15 },
+  controls: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginBottom: 40,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 30,
+    padding: 15,
+  },
   iconButton: { alignItems: 'center' },
   aiButton: { transform: [{ scale: 1.2 }], marginHorizontal: 10 },
   activeButton: { borderColor: '#4cd137', borderWidth: 1, borderRadius: 10, padding: 5 },
   iconText: { color: 'white', fontSize: 10, marginTop: 5, fontWeight: 'bold' },
-  aiOverlay: { position: 'absolute', top: 220, alignSelf: 'center', backgroundColor: 'rgba(0,122,255,0.9)', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20, alignItems: 'center', borderWidth: 2, borderColor: 'white' },
+  aiOverlay: {
+    position: 'absolute',
+    top: 220,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,122,255,0.9)',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
+  },
   aiMoveLabel: { color: 'white', fontSize: 10, textTransform: 'uppercase', opacity: 0.8 },
   aiMoveText: { color: 'white', fontSize: 24, fontWeight: '900' },
   message: { textAlign: 'center', paddingBottom: 10, color: 'white' },
   button: { backgroundColor: '#2196F3', padding: 10, borderRadius: 5 },
   text: { color: 'white', fontWeight: 'bold' },
-  loader: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
+  loader: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
   loaderText: { color: 'white', marginTop: 10, fontSize: 16 },
 });
